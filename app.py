@@ -9,7 +9,11 @@ from key import API_KEY
 client = LSE(api_key=API_KEY)
 
 print("fetching btc candles...")
-candles = client.candles("BTC/USD", "1d", start="2024-01-01")
+try:
+    candles = client.candles("BTC/USD", "1d", start="2024-01-01")
+except Exception as e:
+    print("error fetching candles", e)
+candles = candles if candles else []
 print("got", len(candles), "daily candles")
 
 df = pd.DataFrame(candles)
@@ -33,44 +37,47 @@ equity_values = []
 trades = []
 
 print("made it to the loop")
-for i in range(1, len(df)):
-    # check sma state
-    # nan smas at the start -> stays flat
-    if df["sma_fast"][i - 1] > df["sma_slow"][i - 1]:
-        target = 1
-    else:
-        target = 0
+try:
+    for i in range(1, len(df)):
+        # check sma state
+        # nan smas at the start -> stays flat
+        if df["sma_fast"][i - 1] > df["sma_slow"][i - 1]:
+            target = 1
+        else:
+            target = 0
 
-    if target == 1:
-        open_price = df["low"][i]
-    else:
-        open_price = df["high"][i]
+        open_price = df["open"][i]
 
-    if target == 1 and coins == 0:
-        coins = (cash * (1 - fee)) / open_price
-        last_buy_price = open_price
-        trades.append({"date": df["timestamp"][i], "side": "BUY", "price": round(open_price, 2), "coins": round(coins, 6)})
-        cash = 0.0
-    elif target == 0 and coins > 0:
-        cash = coins * open_price * (1 - fee)
-        if open_price > last_buy_price:
-            wins = wins + 1
-        sells = sells + 1
-        trades.append({"date": df["timestamp"][i], "side": "SELL", "price": round(open_price, 2), "cash_out": round(cash, 2)})
-        coins = 0.0
+        if target == 1 and coins == 0:
+            coins = (cash * (1 - fee)) / open_price
+            last_buy_price = open_price
+            trades.append({"date": df["timestamp"][i], "side": "BUY", "price": round(open_price, 2), "coins": round(coins, 6)})
+            cash = 0.0
+        elif target == 0 and coins > 0:
+            cash = coins * open_price * (1 - fee)
+            if open_price > last_buy_price:
+                wins = wins + 1
+            sells = sells + 1
+            trades.append({"date": df["timestamp"][i], "side": "SELL", "price": round(open_price, 2), "cash_out": round(cash, 2)})
+            coins = 0.0
 
-    equity_dates.append(df["timestamp"][i])
-    equity_values.append(cash + coins * df["close"][i])
+        equity_dates.append(df["timestamp"][i])
+        equity_values.append(cash + coins * df["close"][i])
+except Exception as e:
+    print("error in loop", e)
 
 # max drawdown
 peak = 0.0
 max_dd = 0.0
-for v in equity_values:
-    if v > peak:
-        peak = v
-    dd = (peak - v) / peak
-    if dd > max_dd:
-        max_dd = dd
+try:
+    for v in equity_values:
+        if v > peak:
+            peak = v
+        dd = (peak - v) / peak
+        if dd > max_dd:
+            max_dd = dd
+except Exception as e:
+    print("error in drawdown", e)
 
 days = len(df)
 
@@ -78,8 +85,11 @@ total_return = (equity_values[-1] / 10000.0 - 1) * 100
 
 print("")
 print("===== RESULTS =====")
-print("total return:", round(total_return, 2), "%")
-print("max drawdown:", round(max_dd * 100, 2), "%")
+try:
+    print("total return:", round(total_return, 2), "%")
+    print("max drawdown:", round(max_dd * 100, 2), "%")
+except Exception as e:
+    print("error printing results", e)
 print("trades:", len(trades))
 if sells > 0:
     print("win rate:", round(wins / sells * 100, 1), "% (of", sells, "sells)")
