@@ -8,8 +8,10 @@ def run_backtest(df, fast, slow, fee, starting_cash):
     cash = starting_cash
     coins = 0.0
     last_buy_price = 0.0
+    last_buy_cost = 0.0
     wins = 0
     sells = 0
+    round_trips = 0
 
     equity_values = []
     trades = []
@@ -26,15 +28,18 @@ def run_backtest(df, fast, slow, fee, starting_cash):
         if target == 1 and coins == 0:
             coins = (cash * (1 - fee)) / open_price
             last_buy_price = open_price
+            last_buy_cost = cash  # cash spent at entry, fees included
             trades.append({"date": df["timestamp"][i], "side": "BUY", "price": round(open_price, 2), "coins": round(coins, 6)})
             cash = 0.0
         elif target == 0 and coins > 0:
-            cash = coins * open_price * (1 - fee)
-            if open_price > last_buy_price:
+            proceeds = coins * open_price * (1 - fee)
+            if proceeds > last_buy_cost:
                 wins = wins + 1
             sells = sells + 1
-            trades.append({"date": df["timestamp"][i], "side": "SELL", "price": round(open_price, 2), "cash_out": round(cash, 2)})
+            round_trips = round_trips + 1
+            trades.append({"date": df["timestamp"][i], "side": "SELL", "price": round(open_price, 2), "cash_out": round(proceeds, 2)})
             coins = 0.0
+            cash = proceeds
 
         equity_values.append(cash + coins * df["close"][i])
 
@@ -56,5 +61,6 @@ def run_backtest(df, fast, slow, fee, starting_cash):
         "trades": trades,
         "wins": wins,
         "sells": sells,
+        "round_trips": round_trips,
         "final_equity": equity_values[-1],
     }

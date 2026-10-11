@@ -13,9 +13,9 @@ def main():
     print("===== RESULTS =====")
     print("total return:", round(results["total_return"], 2), "%")
     print("max drawdown:", round(results["max_drawdown"] * 100, 2), "%")
-    print("trades:", len(results["trades"]))
+    print("round trips:", results["round_trips"])
     if results["sells"] > 0:
-        print("win rate:", round(results["wins"] / results["sells"] * 100, 1), "% (of", results["sells"], "sells)")
+        print("win rate:", round(results["wins"] / results["sells"] * 100, 1), "% (of", results["sells"], "closed trades)")
     print("final equity: $", round(results["final_equity"], 2))
 
     print("")
