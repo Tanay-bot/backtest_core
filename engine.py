@@ -43,6 +43,20 @@ def run_backtest(df, fast, slow, fee, starting_cash):
 
         equity_values.append(cash + coins * df["close"][i])
 
+    # close any open position at the last close so the
+    # metrics and equity curve describe the same set of trades
+    if coins > 0:
+        last_close = df["close"][len(df) - 1]
+        proceeds = coins * last_close * (1 - fee)
+        if proceeds > last_buy_cost:
+            wins = wins + 1
+        sells = sells + 1
+        round_trips = round_trips + 1
+        cash = proceeds
+        coins = 0.0
+        trades.append({"date": df["timestamp"][len(df) - 1], "side": "SELL", "price": round(last_close, 2), "cash_out": round(proceeds, 2), "note": "closed at end"})
+        equity_values.append(cash)
+
     # max drawdown
     peak = 0.0
     max_dd = 0.0
